@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LuBrain, LuMessageCircle, LuTarget } from "react-icons/lu";
+import { LuBrain, LuMessageCircle, LuTarget, LuTrophy } from "react-icons/lu";
 import { MAX_ATTEMPTS } from "@/lib/constants";
 
 const steps = [
@@ -37,13 +37,22 @@ export default function Home() {
           </p>
         </div>
 
-        {/* CTA */}
-        <Link
-          href="/game"
-          className="px-8 py-3 border-2 border-[#e05a2b] text-[#e05a2b] font-mono text-sm tracking-widest uppercase hover:bg-[#e05a2b] hover:text-[#141414] transition-all duration-200 glow-orange"
-        >
-          [ start_game ]
-        </Link>
+        {/* CTAs */}
+        <div className="flex gap-3">
+          <Link
+            href="/game"
+            className="px-8 py-3 border-2 border-[#e05a2b] text-[#e05a2b] font-mono text-sm tracking-widest uppercase hover:bg-[#e05a2b] hover:text-[#141414] transition-all duration-200 glow-orange"
+          >
+            [ start_game ]
+          </Link>
+          <Link
+            href="/scoreboard"
+            className="px-4 py-3 border border-[#2e2e2e] text-[#888] font-mono text-sm tracking-widest hover:border-[#26a69a] hover:text-[#26a69a] transition-all duration-200 flex items-center gap-2"
+          >
+            <LuTrophy size={16} />
+            scores
+          </Link>
+        </div>
 
         {/* How to play */}
         <div className="mt-4 w-full">
