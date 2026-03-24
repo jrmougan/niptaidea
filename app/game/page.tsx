@@ -38,8 +38,11 @@ async function fetchGameResponse(messages: { role: string; content: string }[]):
   return res.text();
 }
 
-function GameSession({ onRestart }: { onRestart: () => void }) {
-  const transport = useMemo(() => new TextStreamChatTransport({ api: "/api/chat" }), []);
+function GameSession({ onRestart, token }: { onRestart: () => void; token: string }) {
+  const transport = useMemo(
+    () => new TextStreamChatTransport({ api: "/api/chat", body: { token } }),
+    [token],
+  );
 
   const [inputValue, setInputValue] = useState("");
   const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
@@ -317,6 +320,37 @@ function GameSession({ onRestart }: { onRestart: () => void }) {
 }
 
 export default function GamePage() {
-  const [gameKey, setGameKey] = useState(0);
-  return <GameSession key={gameKey} onRestart={() => setGameKey((k) => k + 1)} />;
+  const [session, setSession] = useState<{ key: number; token: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/game/init", { method: "POST" })
+      .then((r) => r.json())
+      .then(({ token }) => setSession({ key: 0, token }))
+      .catch(() => setSession({ key: 0, token: "" }));
+  }, []);
+
+  if (!session) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-primary">
+        <div className="scanlines fixed inset-0 z-0 pointer-events-none" />
+        <div className="flex items-center gap-3 text-content-muted font-mono text-sm">
+          <LuBrain size={16} className="text-accent-teal" />
+          <span className="cursor-blink">preparando partida</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <GameSession
+      key={session.key}
+      token={session.token}
+      onRestart={() =>
+        fetch("/api/game/init", { method: "POST" })
+          .then((r) => r.json())
+          .then(({ token }) => setSession((s) => ({ key: (s?.key ?? 0) + 1, token })))
+          .catch(() => setSession((s) => ({ key: (s?.key ?? 0) + 1, token: "" })))
+      }
+    />
+  );
 }

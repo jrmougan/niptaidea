@@ -1,0 +1,25 @@
+const getKey = async (): Promise<CryptoKey> => {
+  const secret = process.env.GAME_SECRET ?? process.env.OPENROUTER_API_KEY ?? "niptidea-fallback-key";
+  const raw = new TextEncoder().encode(secret.slice(0, 32).padEnd(32, "0"));
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+};
+
+export async function encryptConcept(data: object): Promise<string> {
+  const key = await getKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(JSON.stringify(data));
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+  const combined = new Uint8Array(12 + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), 12);
+  return btoa(String.fromCharCode(...combined));
+}
+
+export async function decryptConcept(token: string): Promise<{ concept: string; category: string }> {
+  const key = await getKey();
+  const combined = Uint8Array.from(atob(token), (c) => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const encrypted = combined.slice(12);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, encrypted);
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
