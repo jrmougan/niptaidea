@@ -4,13 +4,18 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { LuBrain, LuSend, LuArrowLeft, LuDiamond, LuRefreshCw } from "react-icons/lu";
+import { LuBrain, LuSend, LuArrowLeft, LuDiamond, LuTimer } from "react-icons/lu";
 import ChatMessage from "@/components/ChatMessage";
 import ResultScreen from "@/components/ResultScreen";
-import { MAX_ATTEMPTS } from "@/lib/constants";
+import { MAX_ATTEMPTS, TAUNT_THRESHOLDS } from "@/lib/constants";
 
-// Singleton transport — must live outside the component to avoid re-instantiation on each render
 const transport = new TextStreamChatTransport({ api: "/api/chat" });
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
 
 async function fetchGameResponse(messages: { role: string; content: string }[]): Promise<string> {
   const res = await fetch("/api/chat", {
@@ -41,23 +46,50 @@ export default function GamePage() {
   const [revealedConcept, setRevealedConcept] = useState<string>("");
   const [isGuessMode, setIsGuessMode] = useState(false);
   const [isStarting, setIsStarting] = useState(true);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startedRef = useRef(false);
   const loseTriggeredRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finalTimeRef = useRef(0);
+  const shownTauntsRef = useRef<Set<number>>(new Set());
+
+  const startTimer = () => {
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const resetTimer = () => {
+    stopTimer();
+    setElapsedSeconds(0);
+    finalTimeRef.current = 0;
+  };
 
   const { messages, setMessages, sendMessage, status } = useChat({
     transport,
     onFinish({ message }) {
-      // Extract text from parts
       const textPart = message.parts?.find((p) => p.type === "text");
       const content = (textPart && "text" in textPart ? textPart.text : "") as string;
 
       if (/CORRECTO:/i.test(content)) {
+        stopTimer();
+        finalTimeRef.current = elapsedSeconds;
         const match = content.match(/CORRECTO:\s*(.+)/i);
         if (match) setRevealedConcept(match[1].trim());
         setGameOver("win");
       } else if (/ERA:/i.test(content)) {
+        stopTimer();
+        finalTimeRef.current = elapsedSeconds;
         const match = content.match(/ERA:\s*(.+)/i);
         if (match) setRevealedConcept(match[1].trim());
         setGameOver("lose");
@@ -74,25 +106,41 @@ export default function GamePage() {
 
     fetchGameResponse([{ role: "user", content: "start_game" }]).then((intro) => {
       setMessages([
-        {
-          id: "msg-start",
-          role: "user",
-          parts: [{ type: "text", text: "start_game" }],
-        },
-        {
-          id: "msg-intro",
-          role: "assistant",
-          parts: [{ type: "text", text: intro }],
-        },
+        { id: "msg-start", role: "user", parts: [{ type: "text", text: "start_game" }] },
+        { id: "msg-intro", role: "assistant", parts: [{ type: "text", text: intro }] },
       ]);
       setIsStarting(false);
+      startTimer();
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setMessages]);
+
+  // Cleanup timer on unmount
+  useEffect(() => () => stopTimer(), []);
 
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, isStarting]);
+
+  // Inject taunts at time thresholds
+  useEffect(() => {
+    if (isStarting || gameOver) return;
+
+    for (const taunt of TAUNT_THRESHOLDS) {
+      if (elapsedSeconds >= taunt.seconds && !shownTauntsRef.current.has(taunt.seconds)) {
+        shownTauntsRef.current.add(taunt.seconds);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `taunt-${taunt.seconds}`,
+            role: "assistant" as const,
+            parts: [{ type: "text" as const, text: taunt.message }],
+          },
+        ]);
+      }
+    }
+  }, [elapsedSeconds, isStarting, gameOver, setMessages]);
 
   // Trigger lose when attempts hit 0
   useEffect(() => {
@@ -122,26 +170,8 @@ export default function GamePage() {
     sendMessage({ text: msg });
   };
 
-  const doRestart = (newStartId: number) => {
-    fetchGameResponse([{ role: "user", content: "start_game" }]).then((intro) => {
-      setMessages([
-        {
-          id: `msg-start-${newStartId}`,
-          role: "user",
-          parts: [{ type: "text", text: "start_game" }],
-        },
-        {
-          id: `msg-intro-${newStartId}`,
-          role: "assistant",
-          parts: [{ type: "text", text: intro }],
-        },
-      ]);
-      setIsStarting(false);
-      startedRef.current = true;
-    });
-  };
-
   const handleRestart = () => {
+    resetTimer();
     setAttempts(MAX_ATTEMPTS);
     setGameOver(null);
     setRevealedConcept("");
@@ -150,8 +180,18 @@ export default function GamePage() {
     setInputValue("");
     startedRef.current = false;
     loseTriggeredRef.current = false;
+    shownTauntsRef.current = new Set();
+
     const ts = Date.now();
-    doRestart(ts);
+    fetchGameResponse([{ role: "user", content: "start_game" }]).then((intro) => {
+      setMessages([
+        { id: `msg-start-${ts}`, role: "user", parts: [{ type: "text", text: "start_game" }] },
+        { id: `msg-intro-${ts}`, role: "assistant", parts: [{ type: "text", text: intro }] },
+      ]);
+      setIsStarting(false);
+      startedRef.current = true;
+      startTimer();
+    });
   };
 
   if (gameOver) {
@@ -160,6 +200,7 @@ export default function GamePage() {
         result={gameOver}
         concept={revealedConcept}
         attemptsUsed={MAX_ATTEMPTS - attempts}
+        timeSeconds={finalTimeRef.current}
         onRestart={handleRestart}
       />
     );
@@ -181,12 +222,21 @@ export default function GamePage() {
         <Link href="/" className="text-[#e05a2b] font-bold text-sm tracking-wide text-glow-orange">
           NiP_t_aIdea
         </Link>
-        <span className="text-xs text-[#888] font-mono">
-          {"// questions_asked: "}
-          <span className="text-[#f0f0f0]">{String(MAX_ATTEMPTS - attempts).padStart(2, "0")}</span>
-          {"/"}
-          <span className="text-[#e05a2b]">{MAX_ATTEMPTS}</span>
-        </span>
+
+        <div className="flex items-center gap-4 text-xs font-mono text-[#888]">
+          <span>
+            {"// q: "}
+            <span className="text-[#f0f0f0]">{String(MAX_ATTEMPTS - attempts).padStart(2, "0")}</span>
+            {"/"}<span className="text-[#e05a2b]">{MAX_ATTEMPTS}</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <LuTimer size={12} className={elapsedSeconds > 0 && !isStarting ? "text-[#26a69a]" : "text-[#555]"} />
+            <span className={elapsedSeconds > 0 && !isStarting ? "text-[#26a69a]" : "text-[#555]"}>
+              {formatTime(elapsedSeconds)}
+            </span>
+          </span>
+        </div>
+
         <button
           onClick={handleRestart}
           className="px-3 py-1 border border-[#e05a2b] text-[#e05a2b] text-xs font-mono tracking-widest hover:bg-[#e05a2b] hover:text-[#141414] transition-all"
@@ -252,9 +302,7 @@ export default function GamePage() {
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={
-                isGuessMode ? "escribe tu respuesta exacta..." : "haz una pregunta de sí/no..."
-              }
+              placeholder={isGuessMode ? "escribe tu respuesta exacta..." : "haz una pregunta de sí/no..."}
               disabled={isLoading || attempts === 0 || isStarting}
               className="flex-1 bg-transparent text-sm text-[#f0f0f0] placeholder-[#555] outline-none font-mono"
               autoFocus
@@ -271,10 +319,7 @@ export default function GamePage() {
 
         <div className="mt-2 text-center">
           <button
-            onClick={() => {
-              setIsGuessMode(!isGuessMode);
-              inputRef.current?.focus();
-            }}
+            onClick={() => { setIsGuessMode(!isGuessMode); inputRef.current?.focus(); }}
             disabled={isLoading || attempts === 0 || isStarting}
             className="text-xs text-[#26a69a] hover:text-[#f0f0f0] transition-colors disabled:opacity-40 font-mono tracking-wide"
           >

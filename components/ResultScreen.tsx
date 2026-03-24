@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LuCheck, LuX, LuRefreshCw, LuTrophy, LuArrowLeft } from "react-icons/lu";
+import { LuCheck, LuX, LuRefreshCw, LuTrophy, LuTimer } from "react-icons/lu";
 import { MAX_ATTEMPTS, MAX_NAME_LENGTH, SCOREBOARD_SIZE } from "@/lib/constants";
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
 
 interface ResultScreenProps {
   result: "win" | "lose";
   concept: string;
   attemptsUsed: number;
+  timeSeconds: number;
   onRestart: () => void;
 }
 
@@ -16,11 +23,12 @@ export default function ResultScreen({
   result,
   concept,
   attemptsUsed,
+  timeSeconds,
   onRestart,
 }: ResultScreenProps) {
   const isWin = result === "win";
   const [name, setName] = useState("");
-  const [saved, setSaved] = useState<boolean | null>(null); // null=pending, true=saved, false=not qualified
+  const [saved, setSaved] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -31,7 +39,7 @@ export default function ResultScreen({
     const res = await fetch("/api/scores", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), attempts: attemptsUsed, won: isWin }),
+      body: JSON.stringify({ name: name.trim(), attempts: attemptsUsed, time_seconds: timeSeconds, won: isWin }),
     });
     const data = await res.json();
     setSaved(data.saved === true);
@@ -66,7 +74,7 @@ export default function ResultScreen({
       <div className="relative z-10 flex flex-col items-center gap-6 text-center max-w-md w-full">
         {/* Status icon */}
         <div
-          className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl border-2 ${
+          className={`w-20 h-20 rounded-full flex items-center justify-center border-2 ${
             isWin
               ? "border-[#26a69a] bg-[#26a69a]/10 glow-teal"
               : "border-[#e05a2b] bg-[#e05a2b]/10 glow-orange"
@@ -96,16 +104,22 @@ export default function ResultScreen({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-sm px-4 py-3">
-            <p className="text-[10px] text-[#555] mb-1 font-mono uppercase tracking-wider">preguntas usadas</p>
-            <p className="text-2xl font-bold text-[#f0f0f0] font-mono">
-              {String(attemptsUsed).padStart(2, "0")}/{MAX_ATTEMPTS}
+        <div className="grid grid-cols-3 gap-3 w-full">
+          <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-sm px-3 py-3">
+            <p className="text-[10px] text-[#555] mb-1 font-mono uppercase tracking-wider">preguntas</p>
+            <p className="text-xl font-bold text-[#f0f0f0] font-mono">
+              {String(attemptsUsed).padStart(2, "0")}<span className="text-[#555] text-sm">/{MAX_ATTEMPTS}</span>
             </p>
           </div>
-          <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-sm px-4 py-3">
+          <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-sm px-3 py-3">
+            <p className="text-[10px] text-[#555] mb-1 font-mono uppercase tracking-wider flex items-center gap-1 justify-center">
+              <LuTimer size={10} />tiempo
+            </p>
+            <p className="text-xl font-bold text-[#26a69a] font-mono">{formatTime(timeSeconds)}</p>
+          </div>
+          <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-sm px-3 py-3">
             <p className="text-[10px] text-[#555] mb-1 font-mono uppercase tracking-wider">resultado</p>
-            <p className={`text-2xl font-bold font-mono ${isWin ? "text-[#26a69a]" : "text-[#e05a2b]"}`}>
+            <p className={`text-xl font-bold font-mono ${isWin ? "text-[#26a69a]" : "text-[#e05a2b]"}`}>
               {isWin ? "WIN" : "LOSE"}
             </p>
           </div>

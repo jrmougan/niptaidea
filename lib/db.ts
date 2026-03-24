@@ -12,18 +12,26 @@ if (process.env.NODE_ENV !== "production") globalForDb.db = db;
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS scores (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT    NOT NULL,
-    attempts   INTEGER NOT NULL,
-    won        INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL,
+    attempts     INTEGER NOT NULL,
+    time_seconds INTEGER NOT NULL DEFAULT 0,
+    won          INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
   );
 `);
+
+// Non-destructive migration: add time_seconds if it doesn't exist yet
+const cols = (db.prepare(`PRAGMA table_info(scores)`).all() as { name: string }[]).map(c => c.name);
+if (!cols.includes("time_seconds")) {
+  db.exec(`ALTER TABLE scores ADD COLUMN time_seconds INTEGER NOT NULL DEFAULT 0;`);
+}
 
 export interface Score {
   id: number;
   name: string;
   attempts: number;
+  time_seconds: number;
   won: number;
   created_at: string;
 }

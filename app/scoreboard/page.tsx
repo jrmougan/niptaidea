@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Score } from "@/lib/db";
-import { LuTrophy, LuMedal, LuRefreshCw, LuArrowLeft } from "react-icons/lu";
+import { LuTrophy, LuMedal, LuRefreshCw, LuArrowLeft, LuTimer } from "react-icons/lu";
 import { MAX_ATTEMPTS, SCOREBOARD_SIZE } from "@/lib/constants";
 
 async function getScores(): Promise<Score[]> {
@@ -15,6 +15,12 @@ async function getScores(): Promise<Score[]> {
 }
 
 const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
 
 export default async function ScoreboardPage() {
   const scores = await getScores();
@@ -48,10 +54,11 @@ export default async function ScoreboardPage() {
         {/* Scoreboard table */}
         <div className="w-full border border-[#2e2e2e] bg-[#1e1e1e]">
           {/* Table header */}
-          <div className="grid grid-cols-[2rem_1fr_5rem_6rem] gap-4 px-4 py-2 border-b border-[#2e2e2e] bg-[#242424]">
+          <div className="grid grid-cols-[2rem_1fr_4rem_4rem_5rem] gap-3 px-4 py-2 border-b border-[#2e2e2e] bg-[#242424]">
             <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider">#</span>
             <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider">nombre</span>
-            <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider text-right">preguntas</span>
+            <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider text-right">pregs</span>
+            <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider text-right flex items-center justify-end gap-1"><LuTimer size={10} />tiempo</span>
             <span className="text-[10px] text-[#555] font-mono uppercase tracking-wider text-right">fecha</span>
           </div>
 
@@ -64,7 +71,7 @@ export default async function ScoreboardPage() {
             scores.map((score, i) => (
               <div
                 key={score.id}
-                className={`grid grid-cols-[2rem_1fr_5rem_6rem] gap-4 px-4 py-3 border-b border-[#2e2e2e]/50 last:border-0 transition-colors ${
+                className={`grid grid-cols-[2rem_1fr_4rem_4rem_5rem] gap-3 px-4 py-3 border-b border-[#2e2e2e]/50 last:border-0 transition-colors ${
                   i === 0 ? "bg-[#26a69a]/5" : ""
                 }`}
               >
@@ -92,6 +99,11 @@ export default async function ScoreboardPage() {
                     {score.attempts}
                   </span>
                   <span className="text-[#555]">/{MAX_ATTEMPTS}</span>
+                </span>
+
+                {/* Time */}
+                <span className="font-mono text-sm text-right self-center text-[#26a69a]">
+                  {formatTime(score.time_seconds)}
                 </span>
 
                 {/* Date */}
