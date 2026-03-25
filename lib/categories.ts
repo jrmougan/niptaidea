@@ -9,12 +9,13 @@ export interface CategoryDef {
 }
 
 export const CATEGORIES: Record<string, CategoryDef> = {
-  Persona:  { weight: 25, description: "personajes históricos, famosos o ficticios" },
-  Lugar:    { weight: 20, description: "ciudades, países, monumentos, accidentes geográficos" },
-  Animal:   { weight: 15, description: "especies animales, reales o míticas" },
-  Obra:     { weight: 20, description: "libros, películas, canciones, cuadros, videojuegos" },
-  Comida:   { weight: 10, description: "platos, ingredientes, bebidas, cocinas del mundo" },
-  Deporte:  { weight: 10, description: "deportes, atletas famosos, competiciones, equipos" },
+  Película:  { weight: 15, description: "largometrajes de cualquier género y época" },
+  Serie:     { weight: 15, description: "series de televisión, streaming o anime" },
+  Canción:   { weight: 15, description: "canciones o temas musicales de cualquier género" },
+  Personaje: { weight: 20, description: "personas reales o personajes ficticios de cualquier época o medio" },
+  País:      { weight: 15, description: "países o naciones del mundo" },
+  Animal:    { weight: 10, description: "especies animales reales o míticas" },
+  Plato:     { weight: 10, description: "platos, comidas o bebidas del mundo" },
 };
 
 /** Weighted random category pick */

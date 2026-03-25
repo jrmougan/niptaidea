@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { LuBrain, LuSend, LuTimer, LuUsers, LuMapPin, LuPawPrint, LuClapperboard, LuUtensils, LuDumbbell, LuShuffle } from "react-icons/lu";
+import { LuBrain, LuSend, LuTimer, LuClapperboard, LuTv, LuMusic, LuUsers, LuGlobe, LuPawPrint, LuUtensils, LuShuffle } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import ChatMessage from "@/components/ChatMessage";
 import ResultScreen from "@/components/ResultScreen";
@@ -14,12 +14,13 @@ import { CATEGORIES } from "@/lib/categories";
 
 
 const CATEGORY_ICONS: Record<string, IconType> = {
-  persona:  LuUsers,
-  lugar:    LuMapPin,
-  animal:   LuPawPrint,
-  obra:     LuClapperboard,
-  comida:   LuUtensils,
-  deporte:  LuDumbbell,
+  película:  LuClapperboard,
+  serie:     LuTv,
+  canción:   LuMusic,
+  personaje: LuUsers,
+  país:      LuGlobe,
+  animal:    LuPawPrint,
+  plato:     LuUtensils,
 };
 
 
