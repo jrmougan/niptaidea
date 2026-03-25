@@ -30,6 +30,18 @@ export const DIFFICULTY_PROMPTS: Record<string, string> = {
 /** Default difficulty used if none is specified */
 export const DEFAULT_DIFFICULTY = "facil" as const;
 
+/** Shared difficulty list used across pages and API validation */
+export const DIFFICULTIES = [
+  { key: "facil",   label: "FÁCIL",   desc: "conceptos muy conocidos" },
+  { key: "medio",   label: "MEDIO",   desc: "algo más específico"     },
+  { key: "dificil", label: "DIFÍCIL", desc: "para los valientes"      },
+] as const;
+
+export type DifficultyKey = typeof DIFFICULTIES[number]["key"];
+
+/** Medal colors for top-3 scoreboard positions */
+export const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"] as const;
+
 
 /** OpenRouter model ID used for concept generation and chat */
 export const AI_MODEL = "google/gemini-2.5-flash";

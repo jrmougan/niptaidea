@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LuBrain, LuMessageCircle, LuTarget, LuTrophy, LuMedal, LuTimer } from "react-icons/lu";
-import { AI_MODEL, MAX_ATTEMPTS } from "@/lib/constants";
+import { LuBrain, LuMessageCircle, LuTarget, LuTrophy, LuMedal } from "react-icons/lu";
+import { AI_MODEL, MAX_ATTEMPTS, DIFFICULTIES, MEDAL_COLORS } from "@/lib/constants";
 import type { Score } from "@/lib/db";
 import { formatTime } from "@/lib/utils";
 
@@ -10,13 +10,6 @@ const steps = [
   { num: "03", icon: LuTarget,         text: `Adivínalo antes de agotar ${MAX_ATTEMPTS} preguntas` },
 ];
 
-const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
-
-const DIFFICULTIES = [
-  { key: "facil",   label: "FÁCIL"   },
-  { key: "medio",   label: "MEDIO"   },
-  { key: "dificil", label: "DIFÍCIL" },
-];
 
 async function getTopScoresByDifficulty(): Promise<Record<string, Score[]>> {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";

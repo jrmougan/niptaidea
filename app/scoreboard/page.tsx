@@ -1,14 +1,8 @@
 import Link from "next/link";
 import type { Score } from "@/lib/db";
 import { LuTrophy, LuMedal, LuRefreshCw, LuArrowLeft, LuTimer } from "react-icons/lu";
-import { MAX_ATTEMPTS, SCOREBOARD_SIZE } from "@/lib/constants";
+import { MAX_ATTEMPTS, SCOREBOARD_SIZE, DIFFICULTIES, MEDAL_COLORS } from "@/lib/constants";
 import { formatTime } from "@/lib/utils";
-
-const DIFFICULTIES = [
-  { key: "facil",   label: "FÁCIL"   },
-  { key: "medio",   label: "MEDIO"   },
-  { key: "dificil", label: "DIFÍCIL" },
-];
 
 async function getScores(difficulty: string): Promise<Score[]> {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
@@ -16,8 +10,6 @@ async function getScores(difficulty: string): Promise<Score[]> {
   if (!res.ok) throw new Error(`Error cargando clasificación: ${res.status}`);
   return res.json();
 }
-
-const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
 export default async function ScoreboardPage({
   searchParams,

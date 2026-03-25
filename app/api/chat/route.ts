@@ -3,7 +3,7 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import type { ModelMessage } from "ai";
 import { decryptConcept } from "@/lib/crypto";
 import { AI_MODEL } from "@/lib/constants";
-import { categoryPromptList } from "@/lib/categories";
+import { categoryPromptList, CATEGORIES } from "@/lib/categories";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -86,7 +86,9 @@ export async function POST(req: Request) {
   let category: string | undefined;
   if (token) {
     try {
-      ({ concept, category } = await decryptConcept(token));
+      const decrypted = await decryptConcept(token);
+      concept = decrypted.concept;
+      category = decrypted.category in CATEGORIES ? decrypted.category : undefined;
     } catch {
       // Invalid token — proceed without concept injection
     }

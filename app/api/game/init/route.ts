@@ -27,7 +27,6 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  console.log(`[init] IP=${ip} remaining=${remaining}`);
   const body = await req.json().catch(() => ({}));
   const difficulty: string = body.difficulty ?? DEFAULT_DIFFICULTY;
   const difficultyPrompt = DIFFICULTY_PROMPTS[difficulty] ?? DIFFICULTY_PROMPTS[DEFAULT_DIFFICULTY];
@@ -63,8 +62,6 @@ Responde ÚNICAMENTE con el nombre canónico del concepto, sin explicaciones ni 
   });
 
   const concept = text.trim().replace(/^["']|["']$/g, "");
-
-  console.log(`Chosen concept: ${concept} (${category})`);
 
   const token = await encryptConcept({ concept, category });
   return Response.json({ category, token });

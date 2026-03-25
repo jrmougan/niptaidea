@@ -15,28 +15,13 @@
   --color-border-default:      #2e2e2e;
 }
 
-:root {
-  --bg-primary: #141414;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #242424;
-  --bg-input: #2a2a2a;
-  --accent-orange: #e05a2b;
-  --accent-orange-hover: #c94e22;
-  --accent-teal: #26a69a;
-  --accent-teal-dim: #1a7a71;
-  --text-primary: #f0f0f0;
-  --text-muted: #888888;
-  --text-dim: #555555;
-  --border: #2e2e2e;
-}
-
 * {
   box-sizing: border-box;
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--color-bg-primary);
+  color: var(--color-content-primary);
   font-family: "Courier New", Courier, monospace;
   -webkit-font-smoothing: antialiased;
 }
@@ -55,14 +40,14 @@ html.game-active body {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-card);
+  background: var(--color-bg-card);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-teal-dim);
+  background: var(--color-accent-teal-dim);
 }
 
 /* Blinking cursor animation */
@@ -75,7 +60,7 @@ html.game-active body {
   &::after {
     content: "_";
     animation: blink 1s step-end infinite;
-    color: var(--accent-orange);
+    color: var(--color-accent-orange);
   }
 }
 

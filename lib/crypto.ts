@@ -1,5 +1,6 @@
 const getKey = async (): Promise<CryptoKey> => {
-  const secret = process.env.GAME_SECRET ?? process.env.OPENROUTER_API_KEY ?? "niptidea-fallback-key";
+  const secret = process.env.GAME_SECRET ?? process.env.OPENROUTER_API_KEY;
+  if (!secret) throw new Error("Missing GAME_SECRET or OPENROUTER_API_KEY environment variable");
   const raw = new TextEncoder().encode(secret.slice(0, 32).padEnd(32, "0"));
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 };

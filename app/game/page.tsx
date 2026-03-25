@@ -8,7 +8,7 @@ import { LuBrain, LuSend, LuTimer, LuClapperboard, LuTv, LuMusic, LuUsers, LuGlo
 import type { IconType } from "react-icons";
 import ChatMessage from "@/components/ChatMessage";
 import ResultScreen from "@/components/ResultScreen";
-import { MAX_ATTEMPTS, TAUNT_THRESHOLDS, GAME_SIGNALS } from "@/lib/constants";
+import { MAX_ATTEMPTS, TAUNT_THRESHOLDS, GAME_SIGNALS, DIFFICULTIES } from "@/lib/constants";
 import { formatTime, getMessageText } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/categories";
 
@@ -372,11 +372,6 @@ function addSeenConcept(concept: string) {
   } catch {}
 }
 
-const DIFFICULTIES = [
-  { key: "facil",  label: "FÁCIL",  desc: "conceptos muy conocidos" },
-  { key: "medio",  label: "MEDIO",  desc: "algo más específico" },
-  { key: "dificil",label: "DIFÍCIL",desc: "para los valientes" },
-];
 
 async function initGame(category?: string, difficulty?: string): Promise<{ token: string; category: string }> {
   const r = await fetch("/api/game/init", {
@@ -425,7 +420,7 @@ export default function GamePage() {
           </div>
 
           <p className="text-xs text-content-muted leading-relaxed max-w-xs">
-            Elige qué quiere que adivine la IA,<br />luego intenta descubrirlo en {15} preguntas o menos.
+            Elige qué quiere que adivine la IA,<br />luego intenta descubrirlo en {MAX_ATTEMPTS} preguntas o menos.
           </p>
 
           {/* Category grid */}
