@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport, type UIMessage } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LuBrain, LuSend, LuTimer, LuUsers, LuMapPin, LuPawPrint, LuClapperboard, LuLightbulb } from "react-icons/lu";
 import type { IconType } from "react-icons";
@@ -118,16 +118,20 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   // Cleanup timer on unmount
   useEffect(() => () => stopTimer(), []);
 
+  // Set initial values before first paint to avoid flash on Safari
+  useLayoutEffect(() => {
+    setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
+    if (window.visualViewport) setAppHeight(`${window.visualViewport.height}px`);
+  }, []);
+
   // Adjust height when virtual keyboard opens/closes (iOS + Android)
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
       setAppHeight(`${vv.height}px`);
-      setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
     };
-    update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     return () => {
