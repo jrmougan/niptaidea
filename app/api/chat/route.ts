@@ -24,9 +24,53 @@ Cuatro reglas innegociables:
 Si el usuario adivina exactamente: responde "CORRECTO:" + el concepto en mayúsculas + burla breve.
 Si recibes "__PLAYER_LOST__": responde "ERA:" + el concepto en mayúsculas + mofa condescendiente.`;
 
-function buildSystemPrompt(concept?: string, category?: string): string {
+function normalize(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return dp[m][n];
+}
+
+function isCloseEnough(guess: string, concept: string): boolean {
+  const a = normalize(guess);
+  const b = normalize(concept);
+  return levenshtein(a, b) <= 2;
+}
+
+function getLastUserMessage(messages: ModelMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === "user") {
+      return typeof msg.content === "string"
+        ? msg.content
+        : msg.content.map((p) => ("text" in p ? p.text : "")).join("");
+    }
+  }
+  return "";
+}
+
+function buildSystemPrompt(concept?: string, category?: string, lastUserMsg?: string): string {
   if (!concept) return BASE_PROMPT;
-  return `El concepto secreto de esta partida es "${concept}" (categoría: ${category ?? "desconocida"}). No lo reveles bajo ningún concepto.\n\n${BASE_PROMPT}`;
+
+  const base = `El concepto secreto de esta partida es "${concept}" (categoría: ${category ?? "desconocida"}). No lo reveles bajo ningún concepto.\n\n${BASE_PROMPT}`;
+
+  if (!lastUserMsg) return base;
+
+  const isCorrect = isCloseEnough(lastUserMsg, concept);
+  if (isCorrect) {
+    return `${base}\n\nVALIDACIÓN DEL SISTEMA: el último mensaje del usuario ES el concepto correcto (coincidencia exacta o casi exacta). Debes responder con "CORRECTO:".`;
+  }
+  return `${base}\n\nVALIDACIÓN DEL SISTEMA: el último mensaje del usuario NO es el concepto correcto (difiere demasiado). Está prohibido responder "CORRECTO:" en este turno.`;
 }
 
 export async function POST(req: Request) {
@@ -56,9 +100,11 @@ export async function POST(req: Request) {
     });
   }
 
+  const lastUserMsg = getLastUserMessage(modelMessages);
+
   const result = streamText({
     model: openrouter("deepseek/deepseek-chat-v3-0324"),
-    system: buildSystemPrompt(concept, category),
+    system: buildSystemPrompt(concept, category, lastUserMsg),
     messages: modelMessages,
   });
 

@@ -18,14 +18,6 @@ const CATEGORY_ICONS: Record<string, IconType> = {
   concepto: LuLightbulb,
 };
 
-function parseCategory(messages: UIMessage[]): string | null {
-  for (const msg of messages) {
-    if (msg.role !== "assistant") continue;
-    const match = getMessageText(msg).match(/CATEGOR[ÍI]A:\s*(\w+)/i);
-    if (match) return match[1];
-  }
-  return null;
-}
 
 async function fetchGameResponse(messages: { role: string; content: string }[]): Promise<string> {
   const res = await fetch("/api/chat", {
@@ -38,7 +30,7 @@ async function fetchGameResponse(messages: { role: string; content: string }[]):
   return res.text();
 }
 
-function GameSession({ onRestart, token }: { onRestart: () => void; token: string }) {
+function GameSession({ onRestart, token, category }: { onRestart: () => void; token: string; category: string }) {
   const transport = useMemo(
     () => new TextStreamChatTransport({ api: "/api/chat", body: { token } }),
     [token],
@@ -230,15 +222,13 @@ function GameSession({ onRestart, token }: { onRestart: () => void; token: strin
       </header>
 
       {/* Category badge */}
-      {(() => {
-        const cat = parseCategory(messages);
-        if (!cat) return null;
-        const Icon = CATEGORY_ICONS[cat.toLowerCase()];
+      {!isStarting && (() => {
+        const Icon = CATEGORY_ICONS[category.toLowerCase()];
         return (
           <div className="relative z-10 flex justify-center py-2 border-b border-border-default/50">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-teal/10 border border-accent-teal/30 text-accent-teal text-[11px] font-bold font-mono tracking-widest uppercase leading-none">
               {Icon && <span className="flex items-center"><Icon size={11} /></span>}
-              <span>{cat}</span>
+              <span>{category}</span>
             </span>
           </div>
         );
@@ -319,14 +309,19 @@ function GameSession({ onRestart, token }: { onRestart: () => void; token: strin
   );
 }
 
+async function initGame(): Promise<{ token: string; category: string }> {
+  const r = await fetch("/api/game/init", { method: "POST" });
+  const data = await r.json();
+  return { token: data.token ?? "", category: data.category ?? "" };
+}
+
 export default function GamePage() {
-  const [session, setSession] = useState<{ key: number; token: string } | null>(null);
+  const [session, setSession] = useState<{ key: number; token: string; category: string } | null>(null);
 
   useEffect(() => {
-    fetch("/api/game/init", { method: "POST" })
-      .then((r) => r.json())
-      .then(({ token }) => setSession({ key: 0, token }))
-      .catch(() => setSession({ key: 0, token: "" }));
+    initGame()
+      .then(({ token, category }) => setSession({ key: 0, token, category }))
+      .catch(() => setSession({ key: 0, token: "", category: "" }));
   }, []);
 
   if (!session) {
@@ -341,16 +336,19 @@ export default function GamePage() {
     );
   }
 
+  const handleRestart = () => {
+    setSession(null);
+    initGame()
+      .then(({ token, category }) => setSession((s) => ({ key: (s?.key ?? 0) + 1, token, category })))
+      .catch(() => setSession((s) => ({ key: (s?.key ?? 0) + 1, token: "", category: "" })));
+  };
+
   return (
     <GameSession
       key={session.key}
       token={session.token}
-      onRestart={() =>
-        fetch("/api/game/init", { method: "POST" })
-          .then((r) => r.json())
-          .then(({ token }) => setSession((s) => ({ key: (s?.key ?? 0) + 1, token })))
-          .catch(() => setSession((s) => ({ key: (s?.key ?? 0) + 1, token: "" })))
-      }
+      category={session.category}
+      onRestart={handleRestart}
     />
   );
 }

@@ -13,6 +13,32 @@ export const SCOREBOARD_SIZE = 10;
 /** Maximum character length for a player name */
 export const MAX_NAME_LENGTH = 16;
 
+/**
+ * Category weights for concept generation (must sum to 100).
+ * Adjust to control how often each category appears.
+ */
+export const CATEGORY_WEIGHTS: Record<string, number> = {
+  Persona:  40,   // personajes históricos, famosos, ficticios
+  Objeto:   40,   // objetos cotidianos, tecnología, comida...
+  Concepto: 20,   // ciencia, filosofía, emociones, fenómenos...
+};
+
+/**
+ * Difficulty levels for concept generation.
+ * Controls how well-known or obscure the chosen concept will be.
+ */
+export const DIFFICULTY_PROMPTS: Record<string, string> = {
+  facil:
+    "El concepto debe ser muy conocido por cualquier hispanohablante: figuras muy populares (Messi, Einstein, Don Quijote), objetos del día a día (silla, teléfono, pan) o conceptos básicos (amor, democracia, gravedad).",
+  medio:
+    "El concepto debe ser conocido pero no trivial: personajes históricos o culturales relevantes, objetos específicos pero reconocibles, o conceptos moderadamente abstractos (fotosíntesis, renaissance, capitalismo).",
+  dificil:
+    "El concepto puede ser más oscuro o técnico: figuras históricas menos conocidas, objetos especializados, o conceptos filosóficos/científicos complejos (entropía, nihilismo, efecto Doppler).",
+};
+
+/** Default difficulty used if none is specified */
+export const DEFAULT_DIFFICULTY = "facil" as const;
+
 /** Seconds at which the AI injects a taunt into the chat */
 export const TAUNT_THRESHOLDS: { seconds: number; message: string }[] = [
   { seconds: 60,  message: "...¿Sigues ahí? Llevo esperando un minuto. Hasta el teclado se ha dormido." },
