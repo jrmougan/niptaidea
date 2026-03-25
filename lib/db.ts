@@ -1,7 +1,9 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
 const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "scores.db");
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 // Singleton — reuse the same connection across hot reloads in dev
 declare global {
