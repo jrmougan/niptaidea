@@ -68,11 +68,13 @@ function buildSystemPrompt(concept?: string, category?: string, lastUserMsg?: st
 
   if (!lastUserMsg) return base;
 
-  const isCorrect = isCloseEnough(lastUserMsg, concept);
-  if (isCorrect) {
+  // Levenshtein catches typos (e.g. "Einsten" → "Einstein")
+  if (isCloseEnough(lastUserMsg, concept)) {
     return `${base}\n\nVALIDACIÓN DEL SISTEMA: el último mensaje del usuario ES el concepto correcto (coincidencia exacta o casi exacta). Debes responder con "CORRECTO:".`;
   }
-  return `${base}\n\nVALIDACIÓN DEL SISTEMA: el último mensaje del usuario NO es el concepto correcto (difiere demasiado). Está prohibido responder "CORRECTO:" en este turno.`;
+
+  // Let the model judge translations, alternative titles, synonyms
+  return `${base}\n\nVALIDACIÓN DEL SISTEMA: el último mensaje del usuario no coincide textualmente con "${concept}". Sin embargo, si el usuario dice algo que claramente se refiere al mismo concepto (traducción, título alternativo, nombre en otro idioma, abreviatura conocida), DEBES responder con "CORRECTO:". Solo di "CORRECTO:" si estás seguro de que es equivalente.`;
 }
 
 export async function POST(req: Request) {
