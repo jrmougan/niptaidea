@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport, type UIMessage } from "ai";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LuBrain, LuSend, LuTimer, LuUsers, LuMapPin, LuPawPrint, LuClapperboard, LuLightbulb } from "react-icons/lu";
 import type { IconType } from "react-icons";
@@ -48,7 +48,6 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   const [isStarting, setIsStarting] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [idleSeconds, setIdleSeconds] = useState(0);
-  const [appHeight, setAppHeight] = useState("100dvh");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startedRef = useRef(false);
@@ -116,30 +115,21 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   // Cleanup timer on unmount
   useEffect(() => () => stopTimer(), []);
 
-  // Lock body scroll to prevent iOS Safari from scrolling behind keyboard
+  // Sync --app-height CSS variable with visual viewport (handles iOS Safari keyboard)
   useEffect(() => {
     document.documentElement.classList.add("game-active");
-    return () => document.documentElement.classList.remove("game-active");
-  }, []);
-
-  // Set initial height before first paint
-  useLayoutEffect(() => {
-    if (window.visualViewport) setAppHeight(`${window.visualViewport.height}px`);
-  }, []);
-
-  // Adjust height when virtual keyboard opens/closes (iOS + Android)
-  useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      setAppHeight(`${vv.height}px`);
+    const sync = () => {
+      const h = vv?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${h}px`);
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
     };
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
+    sync();
+    vv?.addEventListener("resize", sync);
     return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
+      vv?.removeEventListener("resize", sync);
+      document.documentElement.classList.remove("game-active");
+      document.documentElement.style.removeProperty("--app-height");
     };
   }, []);
 
@@ -246,7 +236,7 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   });
 
   return (
-    <div className="flex flex-col bg-bg-primary fixed inset-x-0 top-0 overflow-hidden" style={{ height: appHeight }}>
+    <div className="flex flex-col bg-bg-primary fixed inset-x-0 top-0 overflow-hidden h-[var(--app-height,100dvh)]">
       <div className="scanlines fixed inset-0 z-0 pointer-events-none" />
 
       {/* Header */}
