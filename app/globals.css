@@ -62,14 +62,15 @@ body {
   50% { opacity: 0; }
 }
 
-.cursor-blink::after {
-  content: "_";
-  animation: blink 1s step-end infinite;
-  color: var(--accent-orange);
+@utility cursor-blink {
+  &::after {
+    content: "_";
+    animation: blink 1s step-end infinite;
+    color: var(--accent-orange);
+  }
 }
 
-/* Scanline overlay effect */
-.scanlines {
+@utility scanlines {
   background: repeating-linear-gradient(
     0deg,
     transparent,
@@ -80,19 +81,50 @@ body {
   pointer-events: none;
 }
 
-/* Glow effects */
-.glow-orange {
+@utility glow-orange {
   box-shadow: 0 0 20px rgba(224, 90, 43, 0.3);
 }
 
-.glow-teal {
+@utility glow-teal {
   box-shadow: 0 0 20px rgba(38, 166, 154, 0.3);
 }
 
-.text-glow-teal {
+@utility text-glow-teal {
   text-shadow: 0 0 12px rgba(38, 166, 154, 0.6);
 }
 
-.text-glow-orange {
+@utility text-glow-orange {
   text-shadow: 0 0 12px rgba(224, 90, 43, 0.5);
+}
+
+/* Neon flicker for logo */
+@keyframes neon-flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    text-shadow: 0 0 12px rgba(224, 90, 43, 0.5), 0 0 28px rgba(224, 90, 43, 0.3);
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    opacity: 0.82;
+  }
+}
+
+@utility neon-flicker {
+  animation: neon-flicker 6s infinite;
+}
+
+/* Slow pulse for brain icon */
+@keyframes brain-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(38, 166, 154, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(38, 166, 154, 0.65);
+    transform: scale(1.06);
+  }
+}
+
+@utility brain-pulse {
+  animation: brain-pulse 3s ease-in-out infinite;
 }

@@ -238,7 +238,7 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
       <div className="relative z-10 flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {isStarting ? (
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full border border-accent-teal/50 bg-bg-secondary flex items-center justify-center text-accent-teal">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full border border-accent-teal/50 bg-bg-secondary flex items-center justify-center text-accent-teal brain-pulse">
               <LuBrain size={16} />
             </div>
             <div className="bg-bg-secondary border border-border-default rounded-sm px-4 py-3 text-sm text-content-muted">
@@ -251,7 +251,7 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
 
         {isLoading && (
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full border border-accent-teal/50 bg-bg-secondary flex items-center justify-center text-accent-teal">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full border border-accent-teal/50 bg-bg-secondary flex items-center justify-center text-accent-teal brain-pulse">
               <LuBrain size={16} />
             </div>
             <div className="bg-bg-secondary border border-border-default rounded-sm px-4 py-3 text-sm text-content-muted">
@@ -328,9 +328,16 @@ export default function GamePage() {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-primary">
         <div className="scanlines fixed inset-0 z-0 pointer-events-none" />
-        <div className="flex items-center gap-3 text-content-muted font-mono text-sm">
-          <LuBrain size={16} className="text-accent-teal" />
-          <span className="cursor-blink">preparando partida</span>
+        <div className="flex flex-col items-center gap-6 font-mono text-center px-4">
+          <div className="w-16 h-16 rounded-full border border-accent-teal/40 bg-bg-secondary text-accent-teal brain-pulse flex items-center justify-center">
+            <LuBrain size={28} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-accent-teal tracking-[0.3em] uppercase">concepto seleccionado</p>
+            <p className="text-2xl font-bold text-accent-orange neon-flicker tracking-widest">[ 🤔 ]</p>
+            <p className="text-xs text-content-dim mt-1">¡No leas mi mente!</p>
+          </div>
+          <span className="text-content-muted text-sm cursor-blink">preparando partida</span>
         </div>
       </div>
     );

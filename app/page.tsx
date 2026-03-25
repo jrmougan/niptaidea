@@ -23,17 +23,17 @@ export default function Home() {
 
       <div className="relative z-10 flex flex-col items-center gap-8 px-4 text-center max-w-2xl w-full">
         {/* Brain icon */}
-        <div className="flex items-center justify-center w-16 h-16 rounded-full border border-accent-teal/40 bg-bg-secondary text-accent-teal glow-teal">
+        <div className="flex items-center justify-center w-16 h-16 rounded-full border border-accent-teal/40 bg-bg-secondary text-accent-teal brain-pulse">
           <LuBrain size={32} />
         </div>
 
         {/* Title */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-5xl font-bold tracking-tight text-accent-orange text-glow-orange">
+          <h1 className="text-5xl font-bold tracking-tight text-accent-orange neon-flicker">
             NiP_t<span className="text-accent-teal [text-shadow:none]">aI</span>dea
           </h1>
           <p className="text-sm text-content-muted font-mono tracking-widest">
-            // ¿puedes adivinar en qué está pensando la IA?
+            // Akinator te encontraba. NiP_t<span className="text-accent-teal">aI</span>dea te humilla.
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export default function Home() {
         <div className="flex gap-3">
           <Link
             href="/game"
-            className="px-8 py-3 border-2 border-accent-orange text-accent-orange font-mono text-sm tracking-widest uppercase hover:bg-accent-orange hover:text-bg-primary transition-all duration-200 glow-orange"
+            className="px-8 py-3 border-2 border-accent-orange text-accent-orange font-mono text-sm tracking-widest uppercase hover:bg-accent-orange/10 hover:shadow-[0_0_28px_rgba(224,90,43,0.55)] transition-all duration-300 glow-orange"
           >
             [ start_game ]
           </Link>
@@ -63,7 +63,7 @@ export default function Home() {
             {steps.map(({ num, icon: Icon, text }) => (
               <div
                 key={num}
-                className="flex flex-col items-center gap-2 p-4 border border-border-default bg-bg-secondary rounded-sm"
+                className="flex flex-col items-center gap-2 p-4 border border-border-default bg-bg-secondary rounded-sm hover:border-accent-orange/40 hover:shadow-[0_0_16px_rgba(224,90,43,0.15)] transition-all duration-300"
               >
                 <span className="text-accent-orange text-lg font-bold">{num}</span>
                 <Icon size={24} className="text-accent-teal" />
