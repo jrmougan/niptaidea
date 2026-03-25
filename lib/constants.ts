@@ -1,10 +1,18 @@
-/** Maximum number of questions a player can ask per game */
+/** Maximum number of questions a player can ask per game (default) */
 export const MAX_ATTEMPTS = 15;
+
+/** Attempts allowed per difficulty level */
+export const MAX_ATTEMPTS_BY_DIFFICULTY: Record<string, number> = {
+  facil: 15,
+  medio: 15,
+  dificil: 10,
+};
 
 /** Control messages sent to the AI to manage game flow */
 export const GAME_SIGNALS = {
   START: "start_game",
   PLAYER_LOST: "__PLAYER_LOST__",
+  HINT_REQUESTED: "__HINT_REQUESTED__",
 } as const;
 
 /** Maximum number of entries kept in the scoreboard */
@@ -24,7 +32,7 @@ export const DIFFICULTY_PROMPTS: Record<string, string> = {
   medio:
     "El concepto debe ser conocido pero no trivial: personajes históricos o culturales relevantes, objetos específicos pero reconocibles, o conceptos moderadamente abstractos (fotosíntesis, renaissance, capitalismo).",
   dificil:
-    "El concepto puede ser más oscuro o técnico: figuras históricas menos conocidas, objetos especializados, o conceptos filosóficos/científicos complejos (entropía, nihilismo, efecto Doppler).",
+    "El concepto debe ser conocido pero más específico: personajes históricos o culturales reconocibles para aficionados, obras o hitos que no son los primeros que vienen a la mente, o conceptos académicos de secundaria (Revolución Francesa, fotosíntesis, Julio César). El reto viene de los pocos intentos, no de la oscuridad del concepto.",
 };
 
 /** Default difficulty used if none is specified */
@@ -34,7 +42,7 @@ export const DEFAULT_DIFFICULTY = "facil" as const;
 export const DIFFICULTIES = [
   { key: "facil",   label: "FÁCIL",   desc: "conceptos muy conocidos" },
   { key: "medio",   label: "MEDIO",   desc: "algo más específico"     },
-  { key: "dificil", label: "DIFÍCIL", desc: "para los valientes"      },
+  { key: "dificil", label: "DIFÍCIL", desc: "solo 10 intentos"        },
 ] as const;
 
 export type DifficultyKey = typeof DIFFICULTIES[number]["key"];

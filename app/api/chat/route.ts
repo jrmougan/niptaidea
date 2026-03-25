@@ -1,7 +1,7 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { convertToModelMessages, streamText, type UIMessage, type ModelMessage } from "ai";
 import { decryptConcept } from "@/lib/crypto";
-import { AI_MODEL } from "@/lib/constants";
+import { AI_MODEL, GAME_SIGNALS } from "@/lib/constants";
 import { categoryPromptList, CATEGORIES } from "@/lib/categories";
 
 const openrouter = createOpenRouter({
@@ -66,6 +66,18 @@ function buildSystemPrompt(concept?: string, category?: string, lastUserMsg?: st
   const base = `El concepto secreto de esta partida es "${concept}". La categoría asignada por el sistema es "${category ?? "desconocida"}" — usa EXACTAMENTE este nombre al anunciarla, no la reclasifiques.\n\n${BASE_PROMPT}`;
 
   if (!lastUserMsg) return base;
+
+  // Handle hint request
+  if (lastUserMsg.startsWith(GAME_SIGNALS.HINT_REQUESTED)) {
+    const remaining = parseInt(lastUserMsg.split(":")[1] ?? "5", 10);
+    const hintInstruction =
+      remaining > 7
+        ? "da una pista semántica vaga: su categoría general, época histórica o región del mundo donde se origina"
+        : remaining > 3
+        ? "da una pista moderada: una característica reconocible o un dato específico pero no definitivo"
+        : "da una pista casi directa: la inicial del concepto, un sinónimo parcial o algo muy característico que casi lo desvela";
+    return `${base}\n\nEL JUGADOR PIDE UNA PISTA (le quedan ${remaining} intentos). ${hintInstruction}. Empieza tu respuesta SIEMPRE con "PISTA:" seguido de la pista en una sola frase. Puedes ser sarcástico pero la pista debe ser genuinamente útil. Nunca reveles el concepto completo.`;
+  }
 
   // Levenshtein catches typos (e.g. "Einsten" → "Einstein")
   if (isCloseEnough(lastUserMsg, concept)) {

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LuCheck, LuX, LuRefreshCw, LuTrophy, LuTimer } from "react-icons/lu";
-import { MAX_ATTEMPTS, MAX_NAME_LENGTH, SCOREBOARD_SIZE } from "@/lib/constants";
-import { formatTime } from "@/lib/utils";
+import { LuCheck, LuX, LuRefreshCw, LuTrophy, LuTimer, LuZap } from "react-icons/lu";
+import { MAX_ATTEMPTS, MAX_ATTEMPTS_BY_DIFFICULTY, MAX_NAME_LENGTH, SCOREBOARD_SIZE } from "@/lib/constants";
+import { formatTime, levenshtein, normalizeText } from "@/lib/utils";
 
 interface ResultScreenProps {
   result: "win" | "lose";
@@ -13,6 +13,7 @@ interface ResultScreenProps {
   timeSeconds: number;
   difficulty: string;
   onRestart: () => void;
+  lastPlayerGuess?: string;
 }
 
 export default function ResultScreen({
@@ -22,8 +23,16 @@ export default function ResultScreen({
   timeSeconds,
   difficulty,
   onRestart,
+  lastPlayerGuess,
 }: ResultScreenProps) {
   const isWin = result === "win";
+  const maxAttempts = MAX_ATTEMPTS_BY_DIFFICULTY[difficulty] ?? MAX_ATTEMPTS;
+
+  const isNearMiss = !isWin && !!lastPlayerGuess && !!concept && (() => {
+    const dist = levenshtein(normalizeText(lastPlayerGuess), normalizeText(concept));
+    return dist > 0 && dist <= 4;
+  })();
+
   const [name, setName] = useState("");
   const [saved, setSaved] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -101,16 +110,26 @@ export default function ResultScreen({
           <p className="text-xs text-content-dim mt-2 font-mono">
             {isWin
               ? "Vaya, parece que no eres tan torpe después de todo."
-              : `Patético. Ni siquiera pudiste adivinarlo con ${MAX_ATTEMPTS} intentos.`}
+              : `Patético. Ni siquiera pudiste adivinarlo con ${maxAttempts} intentos.`}
           </p>
         </div>
+
+        {/* Near-miss badge */}
+        {isNearMiss && (
+          <div className="w-full flex items-center gap-2 justify-center px-4 py-2 border border-accent-teal/40 bg-accent-teal/5 rounded-sm">
+            <LuZap size={13} className="text-accent-teal flex-shrink-0" />
+            <p className="text-[11px] text-accent-teal font-mono">
+              // ¡estabas cerca! tu último intento era casi correcto
+            </p>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 w-full">
           <div className="bg-bg-secondary border border-border-default rounded-sm px-3 py-3">
             <p className="text-[10px] text-content-dim mb-1 font-mono uppercase tracking-wider">preguntas</p>
             <p className="text-xl font-bold text-content-primary font-mono">
-              {String(attemptsUsed).padStart(2, "0")}<span className="text-content-dim text-sm">/{MAX_ATTEMPTS}</span>
+              {String(attemptsUsed).padStart(2, "0")}<span className="text-content-dim text-sm">/{maxAttempts}</span>
             </p>
           </div>
           <div className="bg-bg-secondary border border-border-default rounded-sm px-3 py-3">
@@ -126,6 +145,15 @@ export default function ResultScreen({
             </p>
           </div>
         </div>
+
+        {/* Loser info */}
+        {!isWin && (
+          <div className="w-full bg-bg-secondary border border-border-default/30 rounded-sm px-4 py-3">
+            <p className="text-[10px] text-content-dim font-mono uppercase tracking-wider text-center">
+              // solo los ganadores guardan su puntuación
+            </p>
+          </div>
+        )}
 
         {/* Save to scoreboard (winners only) */}
         {isWin && (
