@@ -48,6 +48,9 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   const [isStarting, setIsStarting] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [idleSeconds, setIdleSeconds] = useState(0);
+  const [appHeight, setAppHeight] = useState("100dvh");
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const headerRef = useRef<HTMLElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startedRef = useRef(false);
@@ -115,13 +118,22 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   // Cleanup timer on unmount
   useEffect(() => () => stopTimer(), []);
 
-  // Scroll to bottom when virtual keyboard opens/closes
+  // Adjust height when virtual keyboard opens/closes (iOS + Android)
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const handler = () => messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
-    vv.addEventListener("resize", handler);
-    return () => vv.removeEventListener("resize", handler);
+    const update = () => {
+      setAppHeight(`${vv.height}px`);
+      setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
+      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
   }, []);
 
   // Restore focus to input after each AI response
@@ -227,11 +239,11 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   });
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-bg-primary">
+    <div className="flex flex-col bg-bg-primary" style={{ height: appHeight, paddingTop: headerHeight }}>
       <div className="scanlines fixed inset-0 z-0 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-border-default bg-bg-primary">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-3 border-b border-border-default bg-bg-primary">
         <Link href="/" className="text-accent-orange font-bold text-sm tracking-wide text-glow-orange">
           NiP_t<span className="text-accent-teal [text-shadow:none]">aI</span>dea
         </Link>
