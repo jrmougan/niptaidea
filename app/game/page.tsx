@@ -80,13 +80,13 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
         stopTimer();
         finalTimeRef.current = elapsedSeconds;
         const match = content.match(/CORRECTO:\s*(.+)/i);
-        if (match) setRevealedConcept(match[1].trim());
+        if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
         setGameOver("win");
       } else if (/ERA:/i.test(content)) {
         stopTimer();
         finalTimeRef.current = elapsedSeconds;
         const match = content.match(/ERA:\s*(.+)/i);
-        if (match) setRevealedConcept(match[1].trim());
+        if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
         setGameOver("lose");
       }
     },
@@ -176,7 +176,7 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
           stopTimer();
           finalTimeRef.current = elapsedSeconds;
           const match = response.match(/ERA:\s*(.+)/i);
-          if (match) setRevealedConcept(match[1].trim());
+          if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
           setMessages((prev) => [
             ...prev,
             { id: "msg-game-over", role: "assistant" as const, parts: [{ type: "text" as const, text: response }] },
@@ -337,8 +337,26 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
   );
 }
 
+const SEEN_KEY = "niptaidea_seen";
+const SEEN_LIMIT = 20;
+
+function getSeenConcepts(): string[] {
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]"); } catch { return []; }
+}
+
+function addSeenConcept(concept: string) {
+  try {
+    const seen = getSeenConcepts().filter((c) => c !== concept);
+    localStorage.setItem(SEEN_KEY, JSON.stringify([concept, ...seen].slice(0, SEEN_LIMIT)));
+  } catch {}
+}
+
 async function initGame(): Promise<{ token: string; category: string }> {
-  const r = await fetch("/api/game/init", { method: "POST" });
+  const r = await fetch("/api/game/init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seenConcepts: getSeenConcepts() }),
+  });
   const data = await r.json();
   return { token: data.token ?? "", category: data.category ?? "" };
 }
