@@ -8,9 +8,12 @@ import { LuBrain, LuSend, LuTimer, LuClapperboard, LuTv, LuMusic, LuUsers, LuGlo
 import type { IconType } from "react-icons";
 import ChatMessage from "@/components/ChatMessage";
 import ResultScreen from "@/components/ResultScreen";
-import { MAX_ATTEMPTS, TAUNT_THRESHOLDS, GAME_SIGNALS, DIFFICULTIES } from "@/lib/constants";
+import { MAX_ATTEMPTS, GAME_SIGNALS, DIFFICULTIES } from "@/lib/constants";
 import { formatTime, getMessageText } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/categories";
+import { useGameTimer } from "@/hooks/useGameTimer";
+import { useTaunts } from "@/hooks/useTaunts";
+import { getSeenConcepts, addSeenConcept } from "@/lib/seenConcepts";
 
 
 const CATEGORY_ICONS: Record<string, IconType> = {
@@ -28,10 +31,15 @@ async function fetchGameResponse(
   messages: { role: string; content: string }[],
   token?: string,
 ): Promise<string> {
+  const uiMessages = messages.map((m, i) => ({
+    id: `plain-${i}`,
+    role: m.role,
+    parts: [{ type: "text" as const, text: m.content }],
+  }));
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, ...(token && { token }) }),
+    body: JSON.stringify({ messages: uiMessages, ...(token && { token }) }),
   });
 
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -49,30 +57,13 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
   const [gameOver, setGameOver] = useState<"win" | "lose" | null>(null);
   const [revealedConcept, setRevealedConcept] = useState<string>("");
   const [isStarting, setIsStarting] = useState(true);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [idleSeconds, setIdleSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startedRef = useRef(false);
   const loseTriggeredRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finalTimeRef = useRef(0);
-  const shownTauntsRef = useRef<Set<number>>(new Set());
 
-  const startTimer = () => {
-    if (timerRef.current) return;
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds((s) => s + 1);
-      setIdleSeconds((s) => s + 1);
-    }, 1000);
-  };
-
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
+  const { elapsed: elapsedSeconds, idle: idleSeconds, start: startTimer, stop: stopTimer, resetIdle } = useGameTimer();
 
   const { messages, setMessages, sendMessage, status } = useChat({
     transport,
@@ -97,6 +88,8 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  const { reset: resetTaunts } = useTaunts(idleSeconds, !isStarting && !gameOver, setMessages);
+
   // Auto-start on mount (once)
   useEffect(() => {
     if (startedRef.current) return;
@@ -114,9 +107,6 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
       .catch(() => setIsStarting(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Cleanup timer on unmount
-  useEffect(() => () => stopTimer(), []);
 
   // Sync --app-height CSS variable with visual viewport (handles iOS Safari keyboard)
   useEffect(() => {
@@ -147,25 +137,6 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, isStarting]);
-
-  // Inject taunts based on idle time
-  useEffect(() => {
-    if (isStarting || gameOver) return;
-
-    for (const taunt of TAUNT_THRESHOLDS) {
-      if (idleSeconds >= taunt.seconds && !shownTauntsRef.current.has(taunt.seconds)) {
-        shownTauntsRef.current.add(taunt.seconds);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `taunt-${taunt.seconds}-${Date.now()}`,
-            role: "assistant" as const,
-            parts: [{ type: "text" as const, text: taunt.message }],
-          },
-        ]);
-      }
-    }
-  }, [idleSeconds, isStarting, gameOver, setMessages]);
 
   // Trigger lose when attempts hit 0
   useEffect(() => {
@@ -215,8 +186,8 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
     const msg = inputValue.trim();
     setInputValue("");
     setAttempts((prev) => prev - 1);
-    setIdleSeconds(0);
-    shownTauntsRef.current = new Set();
+    resetIdle();
+    resetTaunts();
     sendMessage({ text: msg });
   };
 
@@ -358,21 +329,6 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
   );
 }
 
-const SEEN_KEY = "niptaidea_seen";
-const SEEN_LIMIT = 20;
-
-function getSeenConcepts(): string[] {
-  try { return JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]"); } catch { return []; }
-}
-
-function addSeenConcept(concept: string) {
-  try {
-    const seen = getSeenConcepts().filter((c) => c !== concept);
-    localStorage.setItem(SEEN_KEY, JSON.stringify([concept, ...seen].slice(0, SEEN_LIMIT)));
-  } catch {}
-}
-
-
 async function initGame(category?: string, difficulty?: string): Promise<{ token: string; category: string }> {
   const r = await fetch("/api/game/init", {
     method: "POST",
@@ -387,6 +343,8 @@ async function initGame(category?: string, difficulty?: string): Promise<{ token
   return { token: data.token ?? "", category: data.category ?? "" };
 }
 
+const RANDOM_CATEGORY = "__random__";
+
 export default function GamePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState("medio");
@@ -395,7 +353,8 @@ export default function GamePage() {
 
   const startGame = () => {
     setLoading(true);
-    initGame(selectedCategory ?? undefined, selectedDifficulty)
+    const categoryArg = selectedCategory && selectedCategory !== RANDOM_CATEGORY ? selectedCategory : undefined;
+    initGame(categoryArg, selectedDifficulty)
       .then(({ token, category }) =>
         setSession((s) => ({ key: (s?.key ?? 0) + 1, token, category, difficulty: selectedDifficulty }))
       )
@@ -445,9 +404,9 @@ export default function GamePage() {
             })}
             {/* Sorpréndeme — ocupa el espacio restante en la última fila */}
             <button
-              onClick={() => setSelectedCategory(selectedCategory === "__random__" ? null : "__random__")}
+              onClick={() => setSelectedCategory(selectedCategory === RANDOM_CATEGORY ? null : RANDOM_CATEGORY)}
               className={`col-span-3 flex items-center justify-center gap-2 px-3 py-3 border transition-all text-xs tracking-wider ${
-                selectedCategory === "__random__"
+                selectedCategory === RANDOM_CATEGORY
                   ? "border-accent-orange bg-accent-orange/10 text-accent-orange"
                   : "border-border-default bg-bg-secondary text-content-muted hover:text-content-primary"
               }`}
@@ -484,7 +443,7 @@ export default function GamePage() {
             disabled={!selectedCategory}
             className="w-full py-3 bg-accent-orange text-bg-primary text-sm font-bold tracking-wider disabled:opacity-30 hover:bg-accent-orange-hover transition-colors"
           >
-            {`> start_game(${selectedCategory === "__random__" ? "random" : selectedCategory?.toLowerCase() ?? "..."}, ${selectedDifficulty})`}
+            {`> start_game(${!selectedCategory || selectedCategory === RANDOM_CATEGORY ? "random" : selectedCategory.toLowerCase()}, ${selectedDifficulty})`}
           </button>
         </div>
       </div>

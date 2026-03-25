@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { LuBrain, LuMessageCircle, LuTarget, LuTrophy, LuMedal } from "react-icons/lu";
 import { AI_MODEL, MAX_ATTEMPTS, DIFFICULTIES, MEDAL_COLORS } from "@/lib/constants";
+import { fetchScores } from "@/lib/scores.server";
 import type { Score } from "@/lib/db";
 import { formatTime } from "@/lib/utils";
 
-const steps = [
+const STEPS = [
   { num: "01", icon: LuBrain,          text: "La IA piensa en algo" },
   { num: "02", icon: LuMessageCircle,  text: "Haz preguntas de sí/no" },
   { num: "03", icon: LuTarget,         text: `Adivínalo antes de agotar ${MAX_ATTEMPTS} preguntas` },
@@ -12,17 +13,10 @@ const steps = [
 
 
 async function getTopScoresByDifficulty(): Promise<Record<string, Score[]>> {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const results = await Promise.all(
     DIFFICULTIES.map(async ({ key }) => {
-      try {
-        const res = await fetch(`${base}/api/scores?difficulty=${key}`, { cache: "no-store" });
-        if (!res.ok) return [key, []] as [string, Score[]];
-        const scores: Score[] = await res.json();
-        return [key, scores.slice(0, 3)] as [string, Score[]];
-      } catch {
-        return [key, []] as [string, Score[]];
-      }
+      const scores = await fetchScores(key);
+      return [key, scores.slice(0, 3)] as [string, Score[]];
     }),
   );
   return Object.fromEntries(results);
@@ -81,7 +75,7 @@ export default async function Home() {
             CÓMO_JUGAR
           </p>
           <div className="grid grid-cols-3 gap-4">
-            {steps.map(({ num, icon: Icon, text }) => (
+            {STEPS.map(({ num, icon: Icon, text }) => (
               <div
                 key={num}
                 className="flex flex-col items-center gap-2 p-4 border border-border-default bg-bg-secondary rounded-sm hover:border-accent-orange/40 hover:shadow-[0_0_16px_rgba(224,90,43,0.15)] transition-all duration-300"

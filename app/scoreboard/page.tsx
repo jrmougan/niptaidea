@@ -2,14 +2,9 @@ import Link from "next/link";
 import type { Score } from "@/lib/db";
 import { LuTrophy, LuMedal, LuRefreshCw, LuArrowLeft, LuTimer } from "react-icons/lu";
 import { MAX_ATTEMPTS, SCOREBOARD_SIZE, DIFFICULTIES, MEDAL_COLORS } from "@/lib/constants";
+import { fetchScores } from "@/lib/scores.server";
 import { formatTime } from "@/lib/utils";
 
-async function getScores(difficulty: string): Promise<Score[]> {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const res = await fetch(`${base}/api/scores?difficulty=${difficulty}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Error cargando clasificación: ${res.status}`);
-  return res.json();
-}
 
 export default async function ScoreboardPage({
   searchParams,
@@ -18,7 +13,7 @@ export default async function ScoreboardPage({
 }) {
   const { d } = await searchParams;
   const difficulty = DIFFICULTIES.find((x) => x.key === d)?.key ?? "facil";
-  const scores = await getScores(difficulty);
+  const scores = await fetchScores(difficulty);
 
   return (
     <main className="relative flex flex-col min-h-screen bg-bg-primary items-center justify-start pt-16 pb-12 px-4">

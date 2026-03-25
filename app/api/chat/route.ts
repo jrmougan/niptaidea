@@ -1,6 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import type { ModelMessage } from "ai";
+import { convertToModelMessages, streamText, type UIMessage, type ModelMessage } from "ai";
 import { decryptConcept } from "@/lib/crypto";
 import { AI_MODEL } from "@/lib/constants";
 import { categoryPromptList, CATEGORIES } from "@/lib/categories";
@@ -94,17 +93,7 @@ export async function POST(req: Request) {
     }
   }
 
-  let modelMessages: ModelMessage[];
-  const isUIMessages = rawMessages.length > 0 && Array.isArray((rawMessages[0] as UIMessage).parts);
-
-  if (isUIMessages) {
-    modelMessages = await convertToModelMessages(rawMessages as UIMessage[]);
-  } else {
-    modelMessages = rawMessages.map((m) => {
-      const msg = m as { role: string; content: string };
-      return { role: msg.role as "user" | "assistant", content: msg.content } as ModelMessage;
-    });
-  }
+  const modelMessages = await convertToModelMessages(rawMessages as UIMessage[]);
 
   const lastUserMsg = getLastUserMessage(modelMessages);
 
