@@ -24,8 +24,12 @@ export function useGameTimer() {
 
   const resetIdle = useCallback(() => setIdle(0), []);
 
+  // Always-current ref — safe to read inside async callbacks (avoids stale closure)
+  const elapsedRef = useRef(0);
+  useEffect(() => { elapsedRef.current = elapsed; }, [elapsed]);
+
   // Cleanup on unmount
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  return { elapsed, idle, start, stop, resetIdle };
+  return { elapsed, elapsedRef, idle, start, stop, resetIdle };
 }

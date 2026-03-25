@@ -1,3 +1,5 @@
+import "server-only";
+
 const getKey = async (): Promise<CryptoKey> => {
   const secret = process.env.GAME_SECRET ?? process.env.OPENROUTER_API_KEY;
   if (!secret) throw new Error("Missing GAME_SECRET or OPENROUTER_API_KEY environment variable");

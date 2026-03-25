@@ -77,8 +77,14 @@ function buildSystemPrompt(concept?: string, category?: string, lastUserMsg?: st
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const rawMessages: unknown[] = body.messages ?? [];
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response("Bad request", { status: 400 });
+  }
+
+  const rawMessages: unknown[] = Array.isArray(body.messages) ? body.messages : [];
   const token = typeof body.token === "string" ? body.token : undefined;
 
   let concept: string | undefined;
@@ -93,15 +99,16 @@ export async function POST(req: Request) {
     }
   }
 
-  const modelMessages = await convertToModelMessages(rawMessages as UIMessage[]);
-
-  const lastUserMsg = getLastUserMessage(modelMessages);
-
-  const result = streamText({
-    model: openrouter(AI_MODEL),
-    system: buildSystemPrompt(concept, category, lastUserMsg),
-    messages: modelMessages,
-  });
-
-  return result.toTextStreamResponse();
+  try {
+    const modelMessages = await convertToModelMessages(rawMessages as UIMessage[]);
+    const lastUserMsg = getLastUserMessage(modelMessages);
+    const result = streamText({
+      model: openrouter(AI_MODEL),
+      system: buildSystemPrompt(concept, category, lastUserMsg),
+      messages: modelMessages,
+    });
+    return result.toTextStreamResponse();
+  } catch {
+    return new Response("Bad request", { status: 400 });
+  }
 }

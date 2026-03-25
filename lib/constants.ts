@@ -43,6 +43,10 @@ export type DifficultyKey = typeof DIFFICULTIES[number]["key"];
 export const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"] as const;
 
 
+/** Rate limiting for game init endpoint */
+export const MAX_GAMES_PER_WINDOW = 30;
+export const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
 /** OpenRouter model ID used for concept generation and chat */
 export const AI_MODEL = "google/gemini-2.5-flash";
 

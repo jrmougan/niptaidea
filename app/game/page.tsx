@@ -63,7 +63,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
   const loseTriggeredRef = useRef(false);
   const finalTimeRef = useRef(0);
 
-  const { elapsed: elapsedSeconds, idle: idleSeconds, start: startTimer, stop: stopTimer, resetIdle } = useGameTimer();
+  const { elapsed: elapsedSeconds, elapsedRef, idle: idleSeconds, start: startTimer, stop: stopTimer, resetIdle } = useGameTimer();
 
   const { messages, setMessages, sendMessage, status } = useChat({
     transport,
@@ -72,13 +72,13 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
 
       if (/CORRECTO:/i.test(content)) {
         stopTimer();
-        finalTimeRef.current = elapsedSeconds;
+        finalTimeRef.current = elapsedRef.current;
         const match = content.match(/CORRECTO:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
         setGameOver("win");
       } else if (/ERA:/i.test(content)) {
         stopTimer();
-        finalTimeRef.current = elapsedSeconds;
+        finalTimeRef.current = elapsedRef.current;
         const match = content.match(/ERA:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
         setGameOver("lose");
@@ -166,7 +166,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
       )
         .then((response) => {
           stopTimer();
-          finalTimeRef.current = elapsedSeconds;
+          finalTimeRef.current = elapsedRef.current;
           const match = response.match(/ERA:\s*(.+)/i);
           if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
           setMessages((prev) => [

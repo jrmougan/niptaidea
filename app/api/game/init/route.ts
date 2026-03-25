@@ -1,14 +1,11 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
 import { encryptConcept } from "@/lib/crypto";
-import { AI_MODEL, DIFFICULTY_PROMPTS, DEFAULT_DIFFICULTY } from "@/lib/constants";
+import { AI_MODEL, DIFFICULTY_PROMPTS, DEFAULT_DIFFICULTY, MAX_GAMES_PER_WINDOW, RATE_WINDOW_MS } from "@/lib/constants";
 import { CATEGORIES, pickCategory } from "@/lib/categories";
 import { checkRateLimit } from "@/lib/ratelimit";
 
 const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
-
-const RATE_LIMIT = 30;        // max games per window
-const RATE_WINDOW = 60 * 60 * 1000; // 1 hour
 
 function getIP(req: Request): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim()
@@ -18,7 +15,7 @@ function getIP(req: Request): string {
 
 export async function POST(req: Request): Promise<Response> {
   const ip = getIP(req);
-  const { allowed, remaining } = checkRateLimit(ip, RATE_LIMIT, RATE_WINDOW);
+  const { allowed, remaining } = checkRateLimit(ip, MAX_GAMES_PER_WINDOW, RATE_WINDOW_MS);
 
   if (!allowed) {
     return Response.json(
@@ -30,7 +27,9 @@ export async function POST(req: Request): Promise<Response> {
   const body = await req.json().catch(() => ({}));
   const difficulty: string = body.difficulty ?? DEFAULT_DIFFICULTY;
   const difficultyPrompt = DIFFICULTY_PROMPTS[difficulty] ?? DIFFICULTY_PROMPTS[DEFAULT_DIFFICULTY];
-  const seenConcepts: string[] = Array.isArray(body.seenConcepts) ? body.seenConcepts : [];
+  const seenConcepts: string[] = Array.isArray(body.seenConcepts)
+    ? body.seenConcepts.slice(0, 20).map((c: unknown) => String(c).slice(0, 80).replace(/[\n\r]/g, " "))
+    : [];
   const requestedCategory = typeof body.category === "string" && body.category in CATEGORIES
     ? body.category
     : null;

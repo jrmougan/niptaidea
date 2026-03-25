@@ -8,7 +8,8 @@ export const runtime = "nodejs";
 
 export function GET(req: Request): Response {
   const { searchParams } = new URL(req.url);
-  const difficulty = searchParams.get("difficulty") ?? "facil";
+  const raw = searchParams.get("difficulty") ?? DEFAULT_DIFFICULTY;
+  const difficulty = VALID_DIFFICULTIES.has(raw) ? raw : DEFAULT_DIFFICULTY;
 
   const rows = db
     .prepare(
