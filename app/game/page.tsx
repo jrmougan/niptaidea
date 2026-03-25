@@ -122,7 +122,7 @@ function GameSession({ onRestart, token, category }: { onRestart: () => void; to
     const sync = () => {
       const h = vv?.height ?? window.innerHeight;
       document.documentElement.style.setProperty("--app-height", `${h}px`);
-      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      window.scrollTo(0, 0);
     };
     sync();
     vv?.addEventListener("resize", sync);
