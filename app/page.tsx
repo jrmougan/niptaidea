@@ -3,6 +3,8 @@ import { LuBrain, LuMessageCircle, LuTarget, LuTrophy, LuMedal } from "react-ico
 import { AI_MODEL, MAX_ATTEMPTS, DIFFICULTIES, MEDAL_COLORS } from "@/lib/constants";
 import { fetchScores } from "@/lib/scores.server";
 import type { Score } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 import { formatTime } from "@/lib/utils";
 
 const STEPS = [
