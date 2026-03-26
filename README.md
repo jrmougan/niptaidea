@@ -1,12 +1,21 @@
 # NiP_taIdea
 
-Juego de adivinanza con IA sarcástica. La IA piensa en un concepto secreto y tú tienes 15 preguntas para descubrirlo. Basado en la idea de Akinator pero con una personalidad condescendiente que te insulta si tardas demasiado.
+Juego de adivinanza con IA sarcástica. La IA piensa en un concepto secreto y tú tienes que descubrirlo a base de preguntas de sí/no. Basado en la idea de Akinator pero con una personalidad condescendiente que te insulta si tardas demasiado.
+
+**Demo:** https://niptaidea.mougan.es
+
+> Desplegado en [CubePath](https://midu.link/cubepath)
+
+## Capturas
+
+<!-- Añade aquí capturas o GIFs del juego -->
 
 ## Cómo funciona
 
-- Elige una categoría (Película, Serie, Canción, Personaje, País, Animal o Plato) y una dificultad (Fácil, Medio, Difícil)
+- Elige una categoría (Película, Serie, Canción, Personaje, País, Animal, Plato o Lugar) y una dificultad (Fácil, Medio, Difícil)
+- Opcionalmente filtra por subcategoría (ej. Terror dentro de Película, Ciudad dentro de Lugar...)
 - La IA elige un concepto secreto dentro de esa categoría
-- Tienes **15 preguntas** para adivinarlo
+- Tienes un número limitado de preguntas para adivinarlo
 - Puedes hacer preguntas de sí/no o intentar adivinar directamente
 - La IA responde: Sí, No, Frío, Tibio o Caliente
 - Si aciertas: `CORRECTO: <concepto>`
@@ -22,7 +31,7 @@ Juego de adivinanza con IA sarcástica. La IA piensa en un concepto secreto y t�
 | IA | Gemini Flash 3 via OpenRouter (`@openrouter/ai-sdk-provider`) |
 | Streaming | Vercel AI SDK v6 (`useChat`, `streamText`) |
 | Base de datos | SQLite (`better-sqlite3`) |
-| Despliegue | Docker + Coolify |
+| Despliegue | CubePath |
 | Analíticas | Umami (self-hosted) |
 
 ## Estructura
@@ -38,7 +47,7 @@ app/
     scores/route.ts         # GET/POST — scoreboard por dificultad
 lib/
   constants.ts              # Configuración (intentos, modelo, taunts)
-  categories.ts             # Categorías y descripciones para el prompt
+  categories.ts             # Categorías, subcategorías y descripciones para el prompt
   crypto.ts                 # AES-GCM para cifrar el concepto
   ratelimit.ts              # Rate limiter fixed-window en memoria
   db.ts                     # Conexión SQLite y schema (con migraciones no destructivas)
@@ -68,7 +77,9 @@ npm run dev
 
 La base de datos se crea automáticamente en el primer arranque.
 
-## Despliegue con Docker
+## Despliegue en CubePath
+
+El proyecto usa `output: "standalone"` en Next.js y se empaqueta como imagen Docker.
 
 ```bash
 docker build -t niptaidea .
@@ -81,21 +92,13 @@ docker run -p 3000:3000 \
 
 El volumen en `/app/data` persiste la base de datos entre reinicios.
 
-### Con Coolify
-
-1. Crear servicio **Application** apuntando al repositorio GitHub
-2. Coolify detecta el `Dockerfile` automáticamente
-3. Añadir variables de entorno en la configuración del servicio
-4. Montar volumen persistente en `/app/data`
-5. Configurar webhook en GitHub (`Settings → Webhooks`) con la URL que proporciona Coolify para auto-despliegue en cada push a `main`
-
 ## Detalles de implementación
 
 **Rate limiting** — 30 partidas por IP por hora (fixed-window, en memoria). Solo funciona en despliegue de instancia única.
 
 **Cifrado del concepto** — El concepto se cifra con AES-GCM antes de enviarlo al cliente como token opaco, impidiendo que el jugador lo lea en las DevTools. La clave se deriva de `GAME_SECRET`.
 
-**Selector de categoría y dificultad** — Antes de cada partida el jugador elige la categoría (Película, Serie, Canción, Personaje, País, Animal, Plato) o pulsa "Sorpréndeme" para una aleatoria, y selecciona la dificultad (Fácil / Medio / Difícil). La dificultad se pasa al prompt de generación y se guarda junto a la puntuación.
+**Categorías y subcategorías** — El jugador elige la categoría (Película, Serie, Canción, Personaje, País, Animal, Plato, Lugar) y opcionalmente una subcategoría para acotar el concepto (ej. Terror, Ciudad, Mamífero...). La subcategoría se pasa al prompt de generación para refinar la elección de la IA.
 
 **Validación de respuestas** — Primera capa: distancia de Levenshtein (≤ 2) para errores tipográficos. Segunda capa: si no hay coincidencia literal, el modelo juzga si la respuesta es una traducción o título alternativo válido (ej. "Memorias de África" → "Out of Africa").
 
@@ -105,4 +108,4 @@ El volumen en `/app/data` persiste la base de datos entre reinicios.
 
 **Scoreboard por dificultad** — Top 10 independiente por cada nivel de dificultad, ordenado por intentos (ascendente) y luego por tiempo. La landing muestra el top 3 de cada dificultad en paralelo. Si el marcador está lleno y la nueva puntuación es peor que la última, se descarta.
 
-**Analíticas con Umami** — Se usa Umami (self-hosted) para registrar eventos de juego sin almacenar datos personales. Los eventos trackeados incluyen: inicio de partida por categoría y dificultad, aciertos (`game_win`) y fallos (`game_lose`) con los intentos usados, solicitudes de pista, y puntuaciones guardadas en el scoreboard. Permite analizar qué categorías resultan más difíciles, la tasa de acierto por dificultad y el uso de pistas.
+**Analíticas con Umami** — Se usa Umami (self-hosted) para registrar eventos de juego sin almacenar datos personales. Los eventos trackeados incluyen: inicio de partida por categoría y dificultad, aciertos (`game_win`) y fallos (`game_lose`) con los intentos usados, solicitudes de pista, y puntuaciones guardadas en el scoreboard.
