@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { LuBrain, LuSend, LuTimer, LuClapperboard, LuTv, LuMusic, LuUsers, LuGlobe, LuPawPrint, LuUtensils, LuShuffle, LuCircleHelp } from "react-icons/lu";
+import { LuBrain, LuSend, LuTimer, LuClapperboard, LuTv, LuMusic, LuUsers, LuGlobe, LuPawPrint, LuUtensils, LuShuffle, LuCircleHelp, LuMessageCircle, LuTarget, LuChevronDown, LuChevronUp } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import ChatMessage from "@/components/ChatMessage";
 import ResultScreen from "@/components/ResultScreen";
@@ -15,6 +15,23 @@ import { useGameTimer } from "@/hooks/useGameTimer";
 import { useTaunts } from "@/hooks/useTaunts";
 import { getSeenConcepts, addSeenConcept } from "@/lib/seenConcepts";
 import { trackEvent } from "@/lib/analytics";
+
+const HOW_TO_PLAY_KEY = "niptaidea_howtoplay_seen";
+
+function useHowToPlaySeen() {
+  const [seen, setSeen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setSeen(localStorage.getItem(HOW_TO_PLAY_KEY) === "1");
+  }, []);
+
+  const markSeen = () => {
+    localStorage.setItem(HOW_TO_PLAY_KEY, "1");
+    setSeen(true);
+  };
+
+  return { seen, markSeen };
+}
 
 
 const CATEGORY_ICONS: Record<string, IconType> = {
@@ -261,15 +278,20 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
         </button>
       </header>
 
-      {/* Category badge */}
-      {!isStarting && (() => {
-        const Icon = CATEGORY_ICONS[category.toLowerCase()];
+      {/* Category banner */}
+      {(() => {
+        const Icon = CATEGORY_ICONS[category.toLowerCase()] ?? LuBrain;
         return (
-          <div className="relative z-10 flex justify-center py-2 border-b border-border-default/50">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-teal/10 border border-accent-teal/30 text-accent-teal text-[11px] font-bold font-mono tracking-widest uppercase leading-none">
-              {Icon && <span className="flex items-center"><Icon size={11} /></span>}
-              <span>{category}</span>
-            </span>
+          <div className="relative z-10 flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 py-4 border-b border-accent-teal/30 bg-accent-teal/5">
+            <div className="flex items-center gap-3">
+              <Icon size={28} className="text-accent-teal drop-shadow-[0_0_8px_rgba(38,166,154,0.6)]" aria-hidden="true" />
+              <span className="text-2xl font-bold font-mono tracking-widest uppercase text-accent-teal drop-shadow-[0_0_12px_rgba(38,166,154,0.5)]">
+                {category}
+              </span>
+            </div>
+            <p className="text-[10px] text-content-dim font-mono tracking-[0.2em]">
+              // adivina haciendo preguntas de sí / no
+            </p>
           </div>
         );
       })()}
@@ -281,8 +303,16 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
             <div className="flex-shrink-0 w-8 h-8 rounded-full border border-accent-teal/50 bg-bg-secondary flex items-center justify-center text-accent-teal brain-pulse">
               <LuBrain size={16} />
             </div>
-            <div className="bg-bg-secondary border border-border-default rounded-sm px-4 py-3 text-sm text-content-muted">
-              <span className="cursor-blink">inicializando</span>
+            <div className="bg-bg-secondary border border-border-default rounded-sm px-4 py-3 text-sm text-content-primary leading-relaxed max-w-xs sm:max-w-sm">
+              <p>
+                Estoy pensando en algo de <span className="text-accent-teal font-bold uppercase tracking-wider">{category}</span>...
+              </p>
+              <p className="mt-1 text-content-muted">
+                Hazme preguntas de <span className="text-content-primary">sí/no</span> para descubrirlo. Tienes <span className="text-accent-orange font-bold">{maxAttempts} intentos</span>.
+              </p>
+              <p className="mt-2 text-[11px] text-content-dim tracking-wide">
+                <span className="cursor-blink">preparando partida</span>
+              </p>
             </div>
           </div>
         ) : (
@@ -326,12 +356,12 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
             type="button"
             onClick={handleHint}
             disabled={isLoading || attempts <= 1 || isStarting || !!gameOver}
-            title="Pedir pista (-1 intento)"
+            title="Pedir pista (cuesta 1 intento)"
             aria-label="Pedir pista (cuesta 1 intento)"
-            className="px-3 py-2 border border-accent-teal text-accent-teal text-xs font-mono disabled:opacity-30 hover:bg-accent-teal hover:text-bg-primary transition-all flex items-center gap-1"
+            className="px-3 py-2 border border-accent-teal text-accent-teal text-xs font-mono disabled:opacity-30 hover:bg-accent-teal hover:text-bg-primary transition-all flex items-center gap-1.5"
           >
             <LuCircleHelp size={14} />
-            <span className="hidden sm:inline text-[10px] tracking-wider">NptAIdea(-1)</span>
+            <span className="hidden sm:inline text-[10px] tracking-wider">pista <span className="text-accent-teal/60">(-1)</span></span>
           </button>
           <div className="flex-1 flex items-center gap-2 bg-bg-secondary border border-border-default rounded-sm px-3 py-2 focus-within:border-accent-teal transition-colors">
             <span className="text-content-dim text-xs select-none">{"//"}</span>
@@ -339,10 +369,10 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="pregunta o adivina directamente..."
+              placeholder="ej: ¿es una persona? / ¿es real?"
               disabled={isLoading || attempts === 0 || isStarting}
               className="flex-1 bg-transparent text-[16px] md:text-sm text-content-primary placeholder-content-muted outline-none font-mono"
-              aria-label="Escribe una pregunta o tu respuesta"
+              aria-label="Escribe una pregunta de sí/no o tu respuesta directa"
             />
           </div>
           <button
@@ -380,6 +410,22 @@ export default function GamePage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState("medio");
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<{ key: number; token: string; category: string; difficulty: string } | null>(null);
+  const { seen: howToPlaySeen, markSeen: markHowToPlaySeen } = useHowToPlaySeen();
+  // Controlled open state: starts open for first-timers, closed for returning users
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false);
+  // Sync open state once we know whether the user has seen it
+  useEffect(() => {
+    if (howToPlaySeen === false) setHowToPlayOpen(true);
+  }, [howToPlaySeen]);
+
+  const handleDismissHowToPlay = () => {
+    markHowToPlaySeen();
+    setHowToPlayOpen(false);
+  };
+
+  const handleToggleHowToPlay = () => {
+    setHowToPlayOpen((prev) => !prev);
+  };
 
   const startGame = () => {
     setLoading(true);
@@ -408,8 +454,120 @@ export default function GamePage() {
             <p className="text-[11px] text-content-dim tracking-[0.25em]">// select_category</p>
           </div>
 
+          {/* How-to-play panel — auto-expanded for first-timers, collapsible for returning users */}
+          {howToPlaySeen !== null && (
+            <div className="w-full border border-accent-teal/30 bg-accent-teal/5">
+              <button
+                onClick={handleToggleHowToPlay}
+                aria-expanded={howToPlayOpen}
+                aria-controls="how-to-play-body"
+                className="w-full flex items-center justify-between px-4 py-2.5 text-accent-teal hover:bg-accent-teal/10 transition-colors"
+              >
+                <span className="text-[11px] font-bold tracking-[0.2em] uppercase">cómo_jugar</span>
+                {howToPlayOpen
+                  ? <LuChevronUp size={13} aria-hidden="true" />
+                  : <LuChevronDown size={13} aria-hidden="true" />}
+              </button>
+
+              {howToPlayOpen && (
+                <div id="how-to-play-body" className="border-t border-accent-teal/20 px-4 pt-3 pb-4 flex flex-col gap-4">
+
+                  {/* Step 1 — The AI picks a concept */}
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 mt-px flex items-center justify-center border border-accent-teal/40 text-accent-teal text-[10px] font-bold leading-none">1</span>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold text-accent-teal uppercase tracking-wider">
+                        <LuBrain size={12} aria-hidden="true" />
+                        La IA elige un concepto secreto
+                      </p>
+                      <p className="text-[11px] text-content-muted leading-relaxed">
+                        De la categoría que selecciones — tú no sabes cuál es.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Step 2 — Ask yes/no questions */}
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 mt-px flex items-center justify-center border border-accent-teal/40 text-accent-teal text-[10px] font-bold leading-none">2</span>
+                    <div className="flex flex-col gap-2 text-left">
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold text-accent-teal uppercase tracking-wider">
+                        <LuMessageCircle size={12} aria-hidden="true" />
+                        Haz preguntas de sí / no
+                      </p>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[10px] text-content-dim tracking-wider uppercase">ejemplos:</p>
+                        <ul className="flex flex-col gap-1" aria-label="Ejemplos de preguntas">
+                          <li className="font-mono text-[11px] text-content-primary bg-bg-primary border border-border-default px-2 py-1">
+                            // ¿es una persona real?
+                          </li>
+                          <li className="font-mono text-[11px] text-content-primary bg-bg-primary border border-border-default px-2 py-1">
+                            // ¿ocurrió antes del siglo XX?
+                          </li>
+                          <li className="font-mono text-[11px] text-content-primary bg-bg-primary border border-border-default px-2 py-1">
+                            // ¿lo puedes comer?
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3 — Guess directly */}
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 mt-px flex items-center justify-center border border-accent-orange/60 text-accent-orange text-[10px] font-bold leading-none">3</span>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold text-accent-orange uppercase tracking-wider">
+                        <LuTarget size={12} aria-hidden="true" />
+                        Adivina cuando creas saberlo
+                      </p>
+                      <p className="text-[11px] text-content-muted leading-relaxed">
+                        Escribe el nombre directamente en cualquier momento:
+                      </p>
+                      <p className="font-mono text-[11px] text-accent-orange bg-accent-orange/5 border border-accent-orange/30 px-2 py-1">
+                        // ¿es el Titanic?
+                      </p>
+                      <p className="text-[10px] text-content-dim leading-relaxed mt-0.5">
+                        Adivinar también consume 1 intento.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Attempts + hint callout */}
+                  <div className="border border-border-default bg-bg-primary px-3 py-2.5 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-content-dim uppercase tracking-wider">intentos por dificultad</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {DIFFICULTIES.map(({ key, label }) => {
+                        const count = MAX_ATTEMPTS_BY_DIFFICULTY[key] ?? MAX_ATTEMPTS;
+                        return (
+                          <div key={key} className="flex-1 flex flex-col items-center gap-1 border border-border-default py-1.5">
+                            <span className="text-[9px] text-content-dim uppercase tracking-wider">{label}</span>
+                            <span className="font-mono text-sm font-bold text-accent-teal">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="flex items-center gap-1.5 text-[10px] text-content-muted leading-relaxed">
+                      <LuCircleHelp size={11} className="flex-shrink-0 text-accent-teal" aria-hidden="true" />
+                      El botón <span className="font-mono text-content-primary px-0.5">pista</span> revela una pista — cuesta 1 intento.
+                    </p>
+                  </div>
+
+                  {!howToPlaySeen && (
+                    <button
+                      onClick={handleDismissHowToPlay}
+                      className="self-end text-[10px] text-content-dim hover:text-accent-teal transition-colors tracking-wider"
+                    >
+                      [ entendido, no mostrar más ]
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-content-muted leading-relaxed max-w-xs">
-            Elige qué quiere que adivine la IA,<br />luego intenta descubrirlo en {MAX_ATTEMPTS} preguntas o menos.
+            Elige una categoría para que la IA piense en algo<br />e intenta adivinarlo a base de preguntas.
           </p>
 
           {/* Category grid */}
