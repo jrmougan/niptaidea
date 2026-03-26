@@ -14,6 +14,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { useGameTimer } from "@/hooks/useGameTimer";
 import { useTaunts } from "@/hooks/useTaunts";
 import { getSeenConcepts, addSeenConcept } from "@/lib/seenConcepts";
+import { trackEvent } from "@/lib/analytics";
 
 
 const CATEGORY_ICONS: Record<string, IconType> = {
@@ -77,12 +78,14 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
         finalTimeRef.current = elapsedRef.current;
         const match = content.match(/CORRECTO:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
+        trackEvent("game_win", { category, difficulty, attempts: maxAttempts - attempts, time_seconds: elapsedRef.current });
         setGameOver("win");
       } else if (/ERA:/i.test(content)) {
         stopTimer();
         finalTimeRef.current = elapsedRef.current;
         const match = content.match(/ERA:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
+        trackEvent("game_lose", { category, difficulty, attempts: maxAttempts - attempts });
         setGameOver("lose");
       }
     },
@@ -105,6 +108,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
         ]);
         setIsStarting(false);
         startTimer();
+        trackEvent("game_start", { category, difficulty });
       })
       .catch(() => setIsStarting(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,6 +175,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
           finalTimeRef.current = elapsedRef.current;
           const match = response.match(/ERA:\s*(.+)/i);
           if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
+          trackEvent("game_lose", { category, difficulty, attempts: maxAttempts });
           setMessages((prev) => [
             ...prev,
             { id: "msg-game-over", role: "assistant" as const, parts: [{ type: "text" as const, text: response }] },
@@ -200,6 +205,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
     setAttempts((prev) => prev - 1);
     resetIdle();
     resetTaunts();
+    trackEvent("hint_used", { difficulty, attempts_remaining: remaining });
     sendMessage({ text: `${GAME_SIGNALS.HINT_REQUESTED}:${remaining}` });
   };
 

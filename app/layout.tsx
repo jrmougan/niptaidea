@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { MAX_ATTEMPTS } from "@/lib/constants";
 
@@ -25,6 +26,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#141414] text-[#f0f0f0] font-mono">
         {children}
       </body>
+      {process.env.NEXT_PUBLIC_UMAMI_URL && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+        <Script
+          src={`${process.env.NEXT_PUBLIC_UMAMI_URL}/script.js`}
+          data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+          strategy="afterInteractive"
+        />
+      )}
     </html>
   );
 }
