@@ -78,14 +78,14 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
         finalTimeRef.current = elapsedRef.current;
         const match = content.match(/CORRECTO:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
-        trackEvent("game_win", { category, difficulty, attempts: maxAttempts - attempts, time_seconds: elapsedRef.current });
+        trackEvent("game_win", { category, difficulty, attempts: maxAttempts - attempts, time_seconds: elapsedRef.current, concept: match?.[1].trim() ?? "" });
         setGameOver("win");
       } else if (/ERA:/i.test(content)) {
         stopTimer();
         finalTimeRef.current = elapsedRef.current;
         const match = content.match(/ERA:\s*(.+)/i);
         if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
-        trackEvent("game_lose", { category, difficulty, attempts: maxAttempts - attempts });
+        trackEvent("game_lose", { category, difficulty, attempts: maxAttempts - attempts, concept: match?.[1].trim() ?? "" });
         setGameOver("lose");
       }
     },
@@ -175,7 +175,7 @@ function GameSession({ onRestart, token, category, difficulty }: { onRestart: ()
           finalTimeRef.current = elapsedRef.current;
           const match = response.match(/ERA:\s*(.+)/i);
           if (match) { setRevealedConcept(match[1].trim()); addSeenConcept(match[1].trim()); }
-          trackEvent("game_lose", { category, difficulty, attempts: maxAttempts });
+          trackEvent("game_lose", { category, difficulty, attempts: maxAttempts, concept: match?.[1].trim() ?? "" });
           setMessages((prev) => [
             ...prev,
             { id: "msg-game-over", role: "assistant" as const, parts: [{ type: "text" as const, text: response }] },
